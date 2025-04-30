@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 // Removed useState as greetMsg and name are no longer used
 // import { useState } from "react";
 import "./App.css";
+import { Button } from "@/components/ui/button";
 
 function App() {
   // Removed unused state and greet function
@@ -18,8 +19,8 @@ function App() {
   };
 
   return (
-    <main className="container">
-      <h1 className="text-xl">Welcome to Tauri + React</h1>
+    <main className="container flex flex-col items-center justify-center min-h-screen gap-4">
+      <h1 className="text-xl font-semibold">Welcome to Tauri + React</h1>
       <p>Click the button below to open the popup.</p>
 
       {/* Removed the form */}
@@ -39,8 +40,8 @@ function App() {
       </form>
       <p>{greetMsg}</p> */}
 
-      {/* Added button to open popup */}
-      <button onClick={openPopup}>Open Popup</button>
+      {/* Use Shadcn Button */}
+      <Button onClick={openPopup}>Open Popup</Button>
     </main>
   );
 }

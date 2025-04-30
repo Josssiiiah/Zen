@@ -14,16 +14,24 @@ async fn open_popup_window<R: Runtime>(app: AppHandle<R>) -> Result<()> {
         window.set_focus()?;
     } else {
         // If it doesn't exist, create it
-        tauri::WebviewWindowBuilder::new(&app, "popup", tauri::WebviewUrl::App("index.html".into()))
+        let builder = tauri::WebviewWindowBuilder::new(&app, "popup", tauri::WebviewUrl::App("index.html".into()))
             .title("Popup Window")
-            .title_bar_style(tauri::TitleBarStyle::Transparent)
             .decorations(false)
             .inner_size(400.0, 250.0) // Adjust size as needed
             .position(100.0, 100.0) // Optional: Set initial position
-            .resizable(false)
+            .resizable(true)
             .always_on_top(true)
-            .focused(true)
-            .build()?;
+            .focused(true);
+
+        #[cfg(target_os = "macos")]
+        let builder = builder
+            .hidden_title(true) // Necessary for TitleBarStyle::Overlay to work well
+            .title_bar_style(tauri::TitleBarStyle::Overlay);
+
+        #[cfg(not(target_os = "macos"))]
+        let builder = builder.decorations(false);
+
+        builder.build()?;
     }
     Ok(())
 }
@@ -40,6 +48,7 @@ async fn close_popup_window<R: Runtime>(app: AppHandle<R>) -> Result<()> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_os::init())
         .invoke_handler(tauri::generate_handler![
             greet,
             open_popup_window,
