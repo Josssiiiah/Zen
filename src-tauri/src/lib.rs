@@ -1,4 +1,5 @@
-use tauri::{AppHandle, Manager, Result, Runtime};
+use tauri::{AppHandle, Manager, Result, Runtime, Size, Position, Theme, WebviewUrl};
+use window_vibrancy::{apply_blur, apply_vibrancy, NSVisualEffectMaterial};
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -14,24 +15,32 @@ async fn open_popup_window<R: Runtime>(app: AppHandle<R>) -> Result<()> {
         window.set_focus()?;
     } else {
         // If it doesn't exist, create it
-        let builder = tauri::WebviewWindowBuilder::new(&app, "popup", tauri::WebviewUrl::App("index.html".into()))
+        let builder = tauri::WebviewWindowBuilder::new(&app, "popup", WebviewUrl::App("popup.html".into()))
             .title("Popup Window")
+            .inner_size(400.0, 300.0)
+            .position(100.0, 100.0)
+            .transparent(true) // Enable transparency just for the popup
             .decorations(false)
-            .inner_size(400.0, 250.0) // Adjust size as needed
-            .position(100.0, 100.0) // Optional: Set initial position
             .resizable(true)
-            .always_on_top(true)
-            .focused(true);
+            .skip_taskbar(true)
+            .focused(true)
+            .always_on_top(true); // Ensure popup stays on top
 
+        // Create the window
+        let window = builder.build()?;
+        
+        // Apply platform-specific vibrancy effects
         #[cfg(target_os = "macos")]
-        let builder = builder
-            .hidden_title(true) // Necessary for TitleBarStyle::Overlay to work well
-            .title_bar_style(tauri::TitleBarStyle::Overlay);
-
-        #[cfg(not(target_os = "macos"))]
-        let builder = builder.decorations(false);
-
-        builder.build()?;
+        {
+            apply_vibrancy(&window, NSVisualEffectMaterial::HudWindow, None, None)
+                .expect("Failed to apply vibrancy effect on macOS");
+        }
+        
+        #[cfg(target_os = "windows")]
+        {
+            apply_blur(&window, Some((18, 18, 18, 125)))
+                .expect("Failed to apply blur effect on Windows");
+        }
     }
     Ok(())
 }

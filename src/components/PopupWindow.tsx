@@ -1,46 +1,71 @@
 import { invoke } from "@tauri-apps/api/core";
 import { X } from "lucide-react";
-import React from "react";
+import { Button } from "./ui/button";
+import { cn } from "../lib/utils";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
 
 export default function PopupWindow() {
-  // Ensure html and body are transparent for window transparency to work
-  React.useEffect(() => {
-    document.documentElement.style.background = "transparent";
-    document.body.style.background = "transparent";
-  }, []);
-
   return (
     <div
-      // Use a semi-transparent background with blur, rounded corners, and border
-      className="flex flex-col h-screen bg-slate-900/90 backdrop-blur-sm rounded-lg overflow-hidden border border-slate-700 text-slate-50 relative select-none"
+      className="fixed inset-0 p-6"
+      style={{
+        paddingTop: 32,
+        height: "100%",
+        width: "100%",
+      }}
     >
-      {/* This invisible div fills the potential title bar area and is draggable */}
+      {/* This invisible div fills the title bar area and enables window dragging */}
       <div
         data-tauri-drag-region
-        className="absolute top-0 left-0 right-0 h-8 w-full cursor-move" // Ensure it covers the top area and indicates movability
+        className="absolute top-0 left-0 right-0 h-8"
+        style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
       />
 
-      {/* Close button positioned top-right */}
-      <div className="absolute top-1.5 right-1.5 z-10">
-        {" "}
-        {/* Container for button */}
-        <button
+      <div className="flex justify-between items-center pb-4">
+        <div className="text-sm font-medium text-foreground">Popup Window</div>
+        <Button
           onClick={() => invoke("close_popup_window").catch(console.error)}
-          className="p-1 rounded-full text-slate-400 hover:text-slate-100 hover:bg-slate-700/50 focus:outline-none focus:ring-2 focus:ring-slate-500"
-          aria-label="Close"
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 rounded-full"
         >
-          <X size={16} />
-        </button>
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </Button>
       </div>
 
-      {/* Content Area - Added padding top to avoid drag region/button */}
-      <div className="flex-1 flex flex-col items-center justify-center p-4 pt-10 text-center">
-        <h2 className="text-lg font-semibold mb-2">Popup Window</h2>
-        <p className="text-sm text-slate-400">
-          This window should be transparent, rounded, resizable, and movable via
-          the top bar.
-        </p>
-      </div>
+      <Card className="bg-card/30 backdrop-blur-sm border border-border/50">
+        <CardHeader>
+          <CardTitle>Transparent Popup</CardTitle>
+          <CardDescription>
+            A beautifully styled popup with transparency and vibrancy
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">
+            This popup window uses the window-vibrancy crate to create a
+            beautiful backdrop effect. It has rounded corners, stays on top of
+            other windows, and supports transparency effects on both macOS and
+            Windows.
+          </p>
+        </CardContent>
+        <CardFooter className="flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            className="bg-primary/10 hover:bg-primary/20 transition-colors"
+          >
+            Action Button
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

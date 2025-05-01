@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
-import { type } from '@tauri-apps/plugin-os';
-import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
-
+import { type } from "@tauri-apps/plugin-os";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
 import PopupWindow from "./components/PopupWindow"; // Adjusted path
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -15,7 +14,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 
 // Hide decorations here because it doesn't work in Rust for some reason (bug?)
 const osType = type();
-if (osType !== 'macos') {
+if (osType !== "macos") {
   await getCurrentWebviewWindow().setDecorations(false);
 }
 
