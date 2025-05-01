@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import Database from "@tauri-apps/plugin-sql"; // Import the SQL plugin
-import { X } from "lucide-react";
+import { X, ArrowRight, Trash2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input"; // Import Input component
 import { Textarea } from "./ui/textarea"; // Import Textarea component
@@ -113,24 +113,42 @@ export default function PopupWindow() {
     }
   };
 
+  // Function to delete a note
+  const handleDeleteNote = async (id: number) => {
+    // Check db instance exists before proceeding
+    if (!db) {
+      setError("Database connection not available.");
+      return;
+    }
+    // Consider adding a temporary loading/disabled state for the specific note being deleted
+    try {
+      setError(null);
+      // Use db.execute directly from the frontend instance
+      await db.execute("DELETE FROM notes WHERE id = $1", [id]);
+      fetchNotes(); // Refresh notes list
+    } catch (err) {
+      // Log the specific error
+      console.error("Error during db.execute in handleDeleteNote:", err);
+      setError("Failed to delete note. See console for details.");
+    }
+  };
+
   return (
     <div
-      className="fixed inset-0 p-6 flex flex-col h-full"
-      style={{
-        paddingTop: 32, // Adjust padding to account for custom title bar
-      }}
+      className="fixed bg-background/80 rounded-xl inset-0 p-4 flex flex-col h-full"
+      style={
+        {
+          // paddingTop: 32, // Adjust padding, maybe standard p-4 is enough now
+        }
+      }
     >
-      {/* This invisible div fills the title bar area and enables window dragging */}
+      {/* Keep drag region and close button for window management */}
       <div
         data-tauri-drag-region
-        className="absolute top-0 left-0 right-0 h-8"
+        className="absolute top-0 left-0 right-0 h-8" // Title bar height
         style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
       />
-
-      {/* Close Button Area */}
-      <div className="flex justify-between items-center pb-2 absolute top-0 right-0 p-1">
-        {/* Placeholder for potential title text if needed later */}
-        {/* <div className="text-sm font-medium text-foreground/80">Notes</div> */}
+      <div className="absolute top-1 right-1">
         <Button
           onClick={() => invoke("close_popup_window").catch(console.error)}
           variant="ghost"
@@ -142,63 +160,73 @@ export default function PopupWindow() {
         </Button>
       </div>
 
-      {/* Content Area (takes remaining space) */}
-      <div className="flex flex-col flex-grow pt-6 space-y-4 overflow-hidden">
-        {/* Input Card */}
-        <Card className="bg-background/80 backdrop-blur-sm border border-border/50 shrink-0">
-          <CardHeader className="p-3">
-            <CardTitle className="text-base">Add New Note</CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 space-y-2">
+      {/* Main Content Area - takes remaining space, starts below drag region */}
+      <div className="flex flex-col flex-grow pt-8 space-y-3 overflow-hidden">
+        {/* Input Section */}
+        <div className="space-y-2 shrink-0 px-2">
+          {" "}
+          {/* Added padding */}
+          <div className="flex items-center space-x-2">
             <Input
               placeholder="Note Title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="bg-background/50 border-border/60"
+              // Simplify styling, rely on default input style
+              className="flex-grow bg-transparent border-border/60"
             />
-            <Textarea
-              placeholder="Note Body (optional)"
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              className="bg-background/50 border-border/60 h-16"
-            />
-          </CardContent>
-          <CardFooter className="p-3 flex justify-end">
+            {/* Icon Button */}
             <Button
-              size="sm"
+              size="icon"
+              variant="ghost" // Make it less prominent until hover
               onClick={handleAddNote}
-              // Check db state in disabled condition
-              disabled={!db || isLoading}
-              className="bg-primary/80 hover:bg-primary/90 text-primary-foreground"
+              disabled={!db || isLoading || !title.trim()} // Also disable if title is empty
+              className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted/50" // Adjust size/styling
             >
-              Add Note
+              <ArrowRight className="h-4 w-4" />
+              <span className="sr-only">Add Note</span>
             </Button>
-          </CardFooter>
-        </Card>
+          </div>
+          <Textarea
+            placeholder="Note Body (optional)"
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            // Simplify styling, rely on default textarea style
+            className="bg-transparent border-border/60 h-16 text-sm" // Adjust height/font size
+          />
+        </div>
 
         {/* Error Message */}
-        {error && <p className="text-xs text-red-500 px-3">{error}</p>}
+        {error && <p className="text-xs text-red-500 px-2 shrink-0">{error}</p>}
 
-        {/* Notes List Card */}
-        <Card className="bg-card/30 backdrop-blur-sm border border-border/50 flex-grow flex flex-col overflow-hidden">
-          <CardHeader className="p-3">
-            <CardTitle className="text-base">Saved Notes</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0 flex-grow overflow-hidden">
-            <ScrollArea className="h-full px-3">
-              {isLoading ? (
-                <p className="text-muted-foreground text-sm p-3">
-                  Loading notes...
-                </p>
-              ) : notes.length === 0 ? (
-                <p className="text-muted-foreground text-sm p-3">
-                  No notes yet.
-                </p>
-              ) : (
-                <div className="space-y-3 pb-3">
-                  {notes.map((note, index) => (
-                    <div key={note.id}>
-                      {index > 0 && <Separator className="my-2 bg-border/50" />}
+        {/* Separator */}
+        <Separator className="shrink-0 bg-border/50" />
+
+        {/* Notes List Section */}
+        <ScrollArea className="flex-grow px-2">
+          {" "}
+          {/* Added padding */}
+          {isLoading ? (
+            <p className="text-muted-foreground text-sm text-center py-4">
+              Loading notes...
+            </p>
+          ) : notes.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-4">
+              No notes yet.
+            </p>
+          ) : (
+            <div className="space-y-3 pb-4">
+              {" "}
+              {/* Add bottom padding */}
+              {notes.map(
+                (
+                  note // No separator needed inside map now
+                ) => (
+                  <div
+                    key={note.id}
+                    className="p-2 rounded-md hover:bg-muted/50 flex justify-between items-start group" // Use flex, group for hover effect
+                  >
+                    {/* Note Content */}
+                    <div className="flex-grow">
                       <div className="text-sm font-medium">{note.title}</div>
                       {note.body && (
                         <p className="text-xs text-muted-foreground pt-1 whitespace-pre-wrap">
@@ -206,12 +234,22 @@ export default function PopupWindow() {
                         </p>
                       )}
                     </div>
-                  ))}
-                </div>
+                    {/* Delete Button - Show on group hover */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDeleteNote(note.id)}
+                      className="h-6 w-6 shrink-0 text-muted-foreground hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                      aria-label="Delete note"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )
               )}
-            </ScrollArea>
-          </CardContent>
-        </Card>
+            </div>
+          )}
+        </ScrollArea>
       </div>
     </div>
   );
