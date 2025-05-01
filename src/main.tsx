@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import { type } from "@tauri-apps/plugin-os";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import Database from "@tauri-apps/plugin-sql"; // Import Database
 
 import PopupWindow from "./components/PopupWindow"; // Adjusted path
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -29,6 +30,22 @@ const Main = () => {
     // check your label (set by Tauri on creation)
     setIsPopup(win.label === "popup");
   }, []);
+
+  // Add useEffect to initialize the database on app start
+  useEffect(() => {
+    const initDb = async () => {
+      try {
+        // This will create the database file and run migrations if they haven't run
+        const db = await Database.load("sqlite:notes.db");
+        // Optional: Close the connection if not needed immediately in the main window
+        // await db.close();
+        console.log("Database initialized successfully.");
+      } catch (error) {
+        console.error("Failed to initialize database:", error);
+      }
+    };
+    initDb();
+  }, []); // Empty dependency array ensures this runs only once on mount
 
   // Render based on label, wrapping with ThemeProvider if/when needed
   // return (

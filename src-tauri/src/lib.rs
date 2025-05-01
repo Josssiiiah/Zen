@@ -1,4 +1,5 @@
 use tauri::{AppHandle, Manager, Result, Runtime, Size, Position, Theme, WebviewUrl};
+use tauri_plugin_sql::{Migration, MigrationKind};
 use window_vibrancy::{apply_blur, apply_vibrancy, NSVisualEffectMaterial};
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
@@ -19,8 +20,8 @@ async fn open_popup_window<R: Runtime>(app: AppHandle<R>) -> Result<()> {
             .title("Popup Window")
             .inner_size(400.0, 300.0)
             .position(100.0, 100.0)
-            .transparent(true) // Enable transparency just for the popup
-            .decorations(false)
+            .transparent(true) // Disable transparency
+            .decorations(false) // Enable decorations (title bar, etc.)
             .resizable(true)
             .skip_taskbar(true)
             .focused(true)
@@ -29,18 +30,18 @@ async fn open_popup_window<R: Runtime>(app: AppHandle<R>) -> Result<()> {
         // Create the window
         let window = builder.build()?;
         
-        // Apply platform-specific vibrancy effects
-        #[cfg(target_os = "macos")]
-        {
-            apply_vibrancy(&window, NSVisualEffectMaterial::HudWindow, None, None)
-                .expect("Failed to apply vibrancy effect on macOS");
-        }
+        // Remove platform-specific vibrancy/blur effects as they are for transparent windows
+        // #[cfg(target_os = "macos")]
+        // {
+        //     apply_vibrancy(&window, NSVisualEffectMaterial::HudWindow, None, None)
+        //         .expect("Failed to apply vibrancy effect on macOS");
+        // }
         
-        #[cfg(target_os = "windows")]
-        {
-            apply_blur(&window, Some((18, 18, 18, 125)))
-                .expect("Failed to apply blur effect on Windows");
-        }
+        // #[cfg(target_os = "windows")]
+        // {
+        //     apply_blur(&window, Some((18, 18, 18, 125)))
+        //         .expect("Failed to apply blur effect on Windows");
+        // }
     }
     Ok(())
 }
@@ -55,9 +56,28 @@ async fn close_popup_window<R: Runtime>(app: AppHandle<R>) -> Result<()> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let migrations = vec![
+        Migration {
+            version: 1,
+            description: "create_initial_notes_table",
+            sql: "CREATE TABLE IF NOT EXISTS notes (
+                      id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      title TEXT NOT NULL,
+                      body TEXT NOT NULL,
+                      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                  );",
+            kind: MigrationKind::Up,
+        },
+    ];
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_os::init())
+        .plugin(
+            tauri_plugin_sql::Builder::default()
+                .add_migrations("sqlite:notes.db", migrations)
+                .build()
+        )
         .invoke_handler(tauri::generate_handler![
             greet,
             open_popup_window,

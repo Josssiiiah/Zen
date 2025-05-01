@@ -24,6 +24,11 @@
     },
     "macOSPrivateApi": true
   },
+  "plugins": {
+    "sql": {
+      "preload": ["sqlite:notes.db"]
+    }
+  },
   "bundle": {
     "active": true,
     "targets": "all",
